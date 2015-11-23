@@ -3,7 +3,6 @@
 
 import curses
 import curses.textpad
-import os
 import re
 import cmd
 
@@ -105,7 +104,7 @@ class TurboLine:
         self.__commands = commands
         if self.__commands is not None:
             assert isinstance(commands, cmd.Cmd)
-            self.__commands.set_powerline(self)
+            self.__commands.set_turboline(self)
             self.validator.set_commands(commands)
 
     def input(self, preset_text=''):
@@ -115,7 +114,7 @@ class TurboLine:
         provided to this TurboLine instance, the command is executed directly after
         the input.
         :param preset_text: The text to insert as preset (optional).
-        :return The user input as string.
+        :return: The user input as string.
         """
         # Make sure we start with a clear line.
         self.clear()
@@ -190,9 +189,19 @@ class TurboLineValidator:
         self.__commands = None
 
     def set_commands(self, commands):
+        """
+        Takes the TurboLineCmd commands. This setter is used by the
+        TurboLine on initialization.
+        """
         self.__commands = commands
 
     def validate(self, ch):
+        """
+        This is the validation method which resembles most of the vim-like
+        behavior. It is called by the Textbox on every user-keypress. It then
+        decides what to do depending on the pressed key and usually hands the pressed
+        key back to the Textbox when it has been processed.
+        """
 
         # TAB: Autocomplete Matcher (should be the first hit to reset autocomplete iterations if
         # on any other key than TAB.
@@ -210,15 +219,15 @@ class TurboLineValidator:
             self.completion_iteration = 0
             self.completion_text = None
 
-        # HOME
+        # HOME: Set the cursor to the beginning of the line.
         if ch == 262:
             return 1  # CTRL + A
 
-        # END
+        # END: Set the cursor to the end of the line.
         if ch == 360:
             return 5  # CTRL + E
 
-        # KEY_UP
+        # UP: Travel up through the history.
         if ch == 259:
             # Prevent out of bounds access
             if self.history_pos == 0:
@@ -228,7 +237,7 @@ class TurboLineValidator:
             self.history_pos -= 1
             self.textbox_target_pad.addstr(0, 0, self.history[self.history_pos])
 
-        # KEY_DOWN
+        # DOWN: Travel down through the history.
         if ch == 258:
             # Prevent out of bounds access
             if self.history_pos > len(self.history) - 2:
@@ -238,11 +247,11 @@ class TurboLineValidator:
             self.history_pos += 1
             self.textbox_target_pad.addstr(0, 0, self.history[self.history_pos])
 
-        # DEL
+        # DEL: Remove the character under the cursor.
         if ch == 330:
             return 4  # CTRL + D
 
-        # ESC - Be aware that curses uses the OS default (1000ms) to determine
+        # ESC: Cancels the input. Be aware that curses uses the OS default (1000ms) to determine
         # how long it should wait for a subsequent escape sequence key
         # before passing the ESC key on. It is recommended to reduce this
         # delay to 25ms. This is the same delay as vim uses (see:
@@ -254,6 +263,12 @@ class TurboLineValidator:
         return ch
 
     def __retain_current_input(self):
+        """
+        Checks the current input. If it differs from the input
+        which the history contains for the current history position,
+        it creates a new history entry at this position. This resembles
+        the very reasonable behavior of the bash-history.
+        """
         current_input = self.textbox.gather().rstrip()
         if len(self.history) > self.history_pos:
             if self.history[self.history_pos] != current_input:
@@ -263,90 +278,149 @@ class TurboLineValidator:
         self.textbox_target_pad.clear()
 
     def reset(self):
+        """
+        Resets the state of the TurboLine. Must be called by
+        the TurboLine after every input.
+        """
         self.history = [e for e in self.history if e != '']
         self.history_pos = len(self.history)
         self.completion_iteration = 0
 
 
 class TurboLineCmd(cmd.Cmd):
+    """
+    The TurboLineCmd is an adjusted version of the usual Python Cmd. If you are
+    not familiar with the concept of the Python Cmd, read: https://docs.python.org/3/library/cmd.html
+
+    The Cmd removes a lot of tedious tasks when handling command input in Python programs. It automatically
+    supplies auto-completion, maps input to defined commands and much more.
+
+    You can add your own commands by deriving from TurboLineCmd and define commands named do_commandname. So in
+    order to create a command named foo, define a method named do_foo. If you want to provide argument completion
+    for this command, provide another method named complete_foo (the above link elaborates this a bit more).
+
+    A lot of functionality comes from readline, which we sadly cannot use in Curses.This adjusted version
+    adds a new autocomplete implementation which resembles the vim-input behavior:
+
+    1. Try to complete the command
+    2. If there is no argument, TAB cycles through possible matches.
+    3. If there is an argument, try to complete the command unambiguously.
+    4. If the command is valid, try to complete the argument by calling the corresponding complete_commandname method.
+
+    There is a simple helper called _auto_match_list which can be used in argument completion methods (see the
+    documentation on it).
+    """
+
     def __init__(self):
+        """
+        The constructor.
+        """
         cmd.Cmd.__init__(self)
         self.__turboline = None
+
+        # We collect the method names at construction time, so we do not have to
+        # do reflection magic every time we want to autocomplete something.
         method_names = dir(self.__class__)
         self.__command_names = [c[3:] for c in method_names if c.startswith('do_')]
         self.__completion_names = [c[9:] for c in method_names if c.startswith('complete_')]
 
-    def set_powerline(self, powerline):
-        self.__turboline = powerline
+    def set_turboline(self, turboline):
+        """
+        A setter for the TurboLine itself. Only used by the TurboLine.
+        """
+        self.__turboline = turboline
 
-    @staticmethod
-    def write(text):
-        turboline.output(text)
+    def write(self, text):
+        """
+        This method is used to write text back to the line (e.g. "Unknown command: ...").
+        """
+        self.__turboline.output(text)
 
     def emptyline(self):
+        """
+        If we do not overwrite the default behavior, an empty input repeats the last
+        successful input. This differs from the usual vim/bash behavior, so we just ignore empty
+        commands.
+        """
         pass
 
     def default(self, line):
+        """
+        This method is called if no command matches. Per default, we try to auto-complete the command.
+        If we can complete the input unambiguously, we execute the auto-completed command. If this
+        fails, we output: "Unknown command: entered_command".
+
+        :param line: The line which was entered by the user.
+        """
         command, arguments, parsed_line = self.parseline(line)
+
         # We allow auto-completable commands
         if command not in self.__command_names:
             possible_command = self.__complete_command_unambiguously(command)
             if possible_command is not None:
                 self.onecmd(possible_command + ' ' + arguments)
                 return
-        turboline.output("Unknown command: " + parsed_line)
+
+        self.__turboline.output("Unknown command: " + parsed_line)
 
     def complete_input(self, text, iteration):
+        """
+        This method tries to auto-complete the given text. If there is more than one match,
+        the given iteration count decides which one will be returned.
+
+        :param text: The text to be completed.
+        :param iteration: The iteration count. The iteration is done modulo the amount of possible matches.
+        :return: A string with a possible match or None, if nothing matches.
+        """
+        # Find possible hits
         command, args, line = self.parseline(text)
         possible_command_hits = self.__get_possible_hits(command, self.__command_names)
+
+        # If there are several possible commands, we iterate through them (maintaining the argument).
         if len(possible_command_hits) > 1:
             completion = self.__complete_command(command, iteration)
             if args is not None:
                 completion += ' ' + args
             return completion
+
+        # If the command is unambiguously matchable, we try to complete the argument instead.
         elif len(possible_command_hits) == 1:
             new_line = possible_command_hits[0]
             if args is not None:
                 new_line += ' ' + args
             return self.__complete_line(new_line, iteration)
+
+        # If nothing matches, we return None.
         else:
             return None
 
     def __complete_command(self, text, iteration):
+        """
+        Completes the given text to match a command. If there is more than one match,
+        the given iteration count decides which one will be returned.
+
+        :param text: The incomplete command (without arguments).
+        :param iteration: The iteration count. The iteration is done modulo the amount of possible matches.
+        :return: The matched command or None, if nothing matches.
+        """
         hit_list = self.__get_possible_hits(text, self.__command_names)
+
         if len(hit_list) == 0:
             return None
+
         return hit_list[iteration % len(hit_list)]
 
-    def __get_possible_hits(self, text, allowed_words):
-        regex = self.__create_regex(text)
-        return [c for c in allowed_words if re.match(regex, c)]
-
-    def __complete_command_unambiguously(self, text):
-        hit_list = self.__get_possible_hits(text, self.__command_names)
-        if len(hit_list) != 1:
-            return None
-        else:
-            return hit_list[0]
-
-    def _auto_match_list(self, command, argument, allowed_arguments, iteration):
-        allowed_arguments.insert(0, '')
-        hit_list = self.__get_possible_hits(argument, allowed_arguments)
-        if len(hit_list) == 0:
-            return None
-        return command + ' ' + hit_list[iteration % len(hit_list)]
-
-    @staticmethod
-    def __create_regex(text):
-        regex = ''
-        for letter in text:
-            regex += '.*' + letter
-        regex += '.*'
-        return regex
-
     def __complete_line(self, text, iteration):
+        """
+        Completes the given line. This method is used to complete input which consists of
+        a command(-stub) and argument(s).
+        :param text: The input line, which should be completed.
+        :param iteration: The iteration count. The iteration is done modulo the amount of possible matches.
+        :return: The completed line, or None, if the line cannot be completed.
+        """
         command, arguments, line = self.parseline(text)
         if command is None:
+            # No command, no completion.
             return None
 
         # Make sure we have the complete command
@@ -365,6 +439,62 @@ class TurboLineCmd(cmd.Cmd):
         # If not, return whatever we were able to complete
         else:
             return command + ' ' + arguments
+
+    def __get_possible_hits(self, pattern, allowed_words):
+        """
+        Gets a list of possible matches for the given pattern in the given allowed_words list.
+
+        :param pattern: The search pattern. E.g. "foo"
+        :param allowed_words: The list of allowed words (e.g. "foo", "foobar", "bar")
+        :return The matches of the given pattern in the given list as a list (e.g. "foo", "foobar")
+        """
+        regex = self.__create_regex(pattern)
+        return [c for c in allowed_words if re.match(regex, c)]
+
+    def __complete_command_unambiguously(self, text):
+        """
+        If there is exactly one possible completion for the given incomplete command,
+        it is returned, otherwise None.
+
+        :param text: The incomplete command.
+        :return The complete command, if there is exactly one match. None otherwise.
+        """
+        hit_list = self.__get_possible_hits(text, self.__command_names)
+        if len(hit_list) != 1:
+            return None
+        else:
+            return hit_list[0]
+
+    def _auto_match_list(self, command, argument, allowed_arguments, iteration):
+        """
+        This is a simple helper method which can be used to write an argument matcher without much fuzz.
+        Provide the command name, the given argument stub, a list of allowed arguments and the iteration
+        count and the method returns the whole auto-completed line. If everything in life could be that easy.
+
+        :param command: The command name (e.g. "foo").
+        :param argument: The (incomplete) argument (e.g. "bar")
+        :param allowed_arguments: A list of allowed arguments (e.g. "bartender", "coffeebar" "persimmon")
+        :param iteration: The iteration count. The iteration is done modulo the amount of possible matches.
+                          The count is usually given to the argument completion method by the TurboLineCmd.
+        :return The complete match for the given iteration count (e.g. "foo bartender" for count 0).
+        """
+        allowed_arguments.insert(0, '')
+        hit_list = self.__get_possible_hits(argument, allowed_arguments)
+        if len(hit_list) == 0:
+            return None
+        return command + ' ' + hit_list[iteration % len(hit_list)]
+
+    @staticmethod
+    def __create_regex(text):
+        """
+        Creates a regex pattern, which matches every expression containing the given text in the given order
+        but with an arbitrary amount of other characters in between (e.g. foo matches foobar, but also fbarobarobar).
+        """
+        regex = ''
+        for letter in text:
+            regex += '.*' + letter
+        regex += '.*'
+        return regex
 
 
 def refresh_pad_visibility(target_pad, visibility_info, reset_view=False):
@@ -395,44 +525,3 @@ def refresh_pad_visibility(target_pad, visibility_info, reset_view=False):
                        visibility_info.top_x,
                        visibility_info.bottom_y,
                        visibility_info.bottom_x)
-
-
-class MyCommands(TurboLineCmd):
-    def __init__(self):
-        TurboLineCmd.__init__(self)
-
-    def do_greet(self, line):
-        self.write("hello " + line)
-
-    def do_greetfrank(self, line):
-        self.write("hello frank")
-
-    def do_welcome(self, line):
-        self.write("welcome " + line)
-
-    def complete_welcome(self, argument, iteration):
-        allowed_arguments = ['florian', 'fabian', 'wilhelm']
-        return self._auto_match_list('welcome', argument, allowed_arguments, iteration)
-
-    @staticmethod
-    def do_quit(line):
-        curses.echo()
-        screen.clear()
-        screen.refresh()
-        curses.endwin()
-        exit(0)
-
-
-if __name__ == '__main__':
-    os.environ.setdefault('ESCDELAY', '25')
-    screen = curses.initscr()
-    curses.noecho()
-    curses.curs_set(0)
-    turboline = TurboLine(0, 0, 40, 500, MyCommands())
-    screen.refresh()
-
-    while True:
-        in_key = screen.getkey()
-        if in_key == ":":
-            turboline.input()
-        curses.beep()
