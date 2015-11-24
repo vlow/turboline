@@ -146,7 +146,7 @@ class TurboLine:
             self.__commands.onecmd(input_text)
         return input_text
 
-    def output(self, text, format):
+    def output(self, text, format=curses.A_NORMAL):
         """
         Prints the given text as message in the command line.
         :param text: The text to show.
@@ -331,7 +331,7 @@ class TurboLineCmd(cmd.Cmd):
         """
         self.__turboline = turboline
 
-    def write(self, text, format):
+    def write(self, text, format=curses.A_NORMAL):
         """
         This method is used to write text back to the line (e.g. "Unknown command: ...").
         :param text: The text to write.
