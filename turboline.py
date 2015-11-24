@@ -211,7 +211,7 @@ class TurboLineValidator:
                 if self.completion_iteration == 0:
                     self.completion_text = current_input
                 best_match = self.__commands.complete_input(self.completion_text, self.completion_iteration)
-                if best_match:
+                if best_match is not None:
                     self.completion_iteration += 1
                     self.textbox_target_pad.clear()
                     self.textbox_target_pad.addstr(0, 0, best_match)
@@ -449,7 +449,15 @@ class TurboLineCmd(cmd.Cmd):
         :return The matches of the given pattern in the given list as a list (e.g. "foo", "foobar")
         """
         regex = self.__create_regex(pattern)
-        return [c for c in allowed_words if re.match(regex, c)]
+
+        possible_hits = [c for c in allowed_words if re.match(regex, c)]
+
+        # Empty inputs iterate through everything in allowed_words, but should come back to an empty
+        # prompt, once we are all way through the possible matches.
+        if pattern is None:
+            possible_hits.append('')
+
+        return possible_hits
 
     def __complete_command_unambiguously(self, text):
         """
@@ -490,6 +498,9 @@ class TurboLineCmd(cmd.Cmd):
         Creates a regex pattern, which matches every expression containing the given text in the given order
         but with an arbitrary amount of other characters in between (e.g. foo matches foobar, but also fbarobarobar).
         """
+        if text is None:
+            return '.*'
+
         regex = ''
         for letter in text:
             regex += '.*' + letter
