@@ -146,12 +146,13 @@ class TurboLine:
             self.__commands.onecmd(input_text)
         return input_text
 
-    def output(self, text):
+    def output(self, text, format):
         """
         Prints the given text as message in the command line.
-        :param text The text to show.
+        :param text: The text to show.
+        :param format: Text format parameters.
         """
-        self.__text_box_window.addstr(0, 0, text)
+        self.__text_box_window.addstr(0, 0, text, format)
 
         # We do not want to show a prompt, so we move the pad to the beginning of the line.
         self.__visibility_info.top_x = 0
@@ -330,11 +331,13 @@ class TurboLineCmd(cmd.Cmd):
         """
         self.__turboline = turboline
 
-    def write(self, text):
+    def write(self, text, format):
         """
         This method is used to write text back to the line (e.g. "Unknown command: ...").
+        :param text: The text to write.
+        :param format: Curses format parameters.
         """
-        self.__turboline.output(text)
+        self.__turboline.output(text, format)
 
     def emptyline(self):
         """
@@ -361,7 +364,15 @@ class TurboLineCmd(cmd.Cmd):
                 self.onecmd(possible_command + ' ' + arguments)
                 return
 
-        self.__turboline.output("Unknown command: " + parsed_line)
+        self.show_error_message("Unknown command: " + parsed_line)
+
+    def show_error_message(self, text):
+        """
+        Shows an error message. Overwrite this method to change the
+        style or the output of the error message.
+        :param text: The text of the error message.
+        """
+        self.__turboline.output(text, curses.A_BOLD)
 
     def complete_input(self, text, iteration):
         """

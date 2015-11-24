@@ -19,7 +19,7 @@ class ExampleCommands(TurboLineCmd):
 
     def do_greet(self, argument):
         """
-        Defines a command named "greet". Greets whoever specified.
+        Greets whoever specified.
         :param argument: The given argument.
         """
         # We can use self.write to give feedback to the user...
@@ -53,6 +53,14 @@ class ExampleCommands(TurboLineCmd):
         allowed_arguments = ['florian', 'fabian', 'moritz']
         return self._auto_match_list('welcome', argument, allowed_arguments, iteration)
 
+    def show_error_message(self, text):
+        """
+        By overwriting the error message, you can change the style
+        or target of the error messages.
+        :param text: The error message text to show.
+        """
+        self.write(text, curses.color_pair(1) | curses.A_BOLD)
+
     @staticmethod
     def do_quit(line):
         """
@@ -67,6 +75,9 @@ def start(stdscrn):
     # Some Curses defaults, we do not want to echo entered keys and do not show the cursor by default.
     curses.noecho()
     curses.curs_set(0)
+    curses.start_color()
+    curses.init_pair(1, curses.COLOR_RED, curses.COLOR_BLACK)
+    error_color = curses.color_pair(1)
 
     # That is really everything :)
     # We will create a line at the top of the screen (0,0) with a visible size of 40 characters and a
