@@ -19,24 +19,34 @@ class ExampleCommands(TurboLineCmd):
 
     def do_greet(self, argument):
         """
-        Greets whoever specified.
-        :param argument: The given argument.
+        Greets whoever specified. Usage: greet name
         """
         # We can use self.write to give feedback to the user...
         self.write("hello " + argument)
 
+    # The signature must always contain the argument parameter, even if we do not need it.
     def do_greetfrank(self, argument):
         """
-        The signature must always contain the argument parameter, even if we do not need it.
-        :param argument: The given argument.
+        Greets Frank, the man in the stupid bunny suit. Usage: greetfrank
         """
+
         self.write("hello frank, why are you wearing this stupid bunny suit?")
         # frank: why are you wearing that stupid man suit?
 
+    def do_spiderpig(self, argument):
+        # No Python doc, we define a little help method below!
+        self.write("Spiderpig, spiderpig!", curses.color_pair(2))
+
+    def help_spiderpig(self):
+        """
+        If such a help method is defined, 'help command_name' calls this method
+        instead of printing the Python doc.
+        """
+        self.write("Does whatever a spiderpig does!", curses.color_pair(2) | curses.A_BOLD)
+
     def do_welcome(self, argument):
         """
-        Basically does the same as greet...
-        :param argument: The given argument.
+        Welcomes the user with the given name. Usage: welcome name (auto-completable)
         """
         self.write("hey " + argument + ", welcome!")
 
@@ -77,12 +87,14 @@ def start(stdscrn):
     curses.curs_set(0)
     curses.start_color()
     curses.init_pair(1, curses.COLOR_RED, curses.COLOR_BLACK)
-    error_color = curses.color_pair(1)
+    curses.init_pair(2, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
 
     # That is really everything :)
-    # We will create a line at the top of the screen (0,0) with a visible size of 40 characters and a
+    # We will create a line at the top of the screen (0,0) with a visible size of the standard screens width and a
     # maximum input length of 500 characters.
-    turboline = TurboLine(0, 0, 55, 500, ExampleCommands())
+    max_y, max_x = stdscrn.getmaxyx()
+    screen_width = max_x - 1
+    turboline = TurboLine(0, 0, screen_width, 500, ExampleCommands())
 
     stdscrn.refresh()
 

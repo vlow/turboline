@@ -94,8 +94,7 @@ class TurboLine:
         self.__prompt_window = curses.newwin(1, width, y_start, x_start)
         self.__prompt_window.refresh()
         self.__visibility_info = TurboLineVisibilityInfo(0, 0, y_start, x_start + len(prompt), y_start,
-                                                         x_start + len(prompt) +
-                                                         width)
+                                                         x_start + width)
         self.y_start = y_start
         self.x_start = x_start
         self.__text_box_window = curses.newpad(1, max_length)
@@ -152,7 +151,16 @@ class TurboLine:
         :param text: The text to show.
         :param format: Text format parameters.
         """
-        self.__text_box_window.addstr(0, 0, text, format)
+        # We should make sure that there is no linebreak in the output text,
+        # since we only have one line to show...
+        adjusted_text = text.replace('\n', ' ')
+
+        # Also, we remove leading and trailing spaces and tabs.
+        # This is important if we're printing out Python doc, as
+        # our help implementation does.
+        adjusted_text = adjusted_text.strip('\t')
+        adjusted_text = adjusted_text.strip()
+        self.__text_box_window.addstr(0, 0, adjusted_text, format)
 
         # We do not want to show a prompt, so we move the pad to the beginning of the line.
         self.__visibility_info.top_x = 0
@@ -211,7 +219,7 @@ class TurboLineValidator:
                 current_input = self.textbox.gather().rstrip()
                 if self.completion_iteration == 0:
                     self.completion_text = current_input
-                best_match = self.__commands.complete_input(self.completion_text, self.completion_iteration)
+                best_match = self.__commands.auto_complete_input(self.completion_text, self.completion_iteration)
                 if best_match is not None:
                     self.completion_iteration += 1
                     self.textbox_target_pad.clear()
@@ -324,6 +332,7 @@ class TurboLineCmd(cmd.Cmd):
         method_names = dir(self.__class__)
         self.__command_names = [c[3:] for c in method_names if c.startswith('do_')]
         self.__completion_names = [c[9:] for c in method_names if c.startswith('complete_')]
+        self.__help_names = [c[5:] for c in method_names if c.startswith('help_')]
 
     def set_turboline(self, turboline):
         """
@@ -346,6 +355,42 @@ class TurboLineCmd(cmd.Cmd):
         commands.
         """
         pass
+
+    def do_help(self, arguments):
+        """
+        Shows the default help string or calls a custom help method if one is defined.
+        :param arguments: The arguments which were given to the help command.
+        """
+        if arguments == '':
+            self.write('Usage: help command_name')
+            return
+
+        completed_command = self.__complete_command_unambiguously(arguments)
+        if completed_command is None:
+            self.write('Unknown or ambiguous command: \'' + arguments + '\'. Usage: help command_name')
+            return
+
+        if completed_command in self.__help_names:
+            help_method = getattr(self, 'help_' + completed_command)
+            help_method()
+            return
+
+        doc = getattr(self, 'do_' + completed_command).__doc__
+        if doc:
+            self.write(doc)
+        else:
+            self.write('No documentation available for \'' + completed_command + '\'')
+
+    def complete_help(self, arguments, iteration):
+        """
+        Our implementation of complete_... differs from the cmd implementation in that
+        it does not return a list, but only one value. We therefore overwrite the
+        complete_help to make use of the auto matcher.
+        :param arguments: The arguments given to help command (as one string).
+        :param iteration: The iteration count. The iteration is done modulo the amount of possible matches.
+        :return: The matched command, or None if there is no match.
+        """
+        return self._auto_match_list('help', arguments, self.__command_names, iteration)
 
     def default(self, line):
         """
@@ -374,7 +419,7 @@ class TurboLineCmd(cmd.Cmd):
         """
         self.__turboline.output(text, curses.A_BOLD)
 
-    def complete_input(self, text, iteration):
+    def auto_complete_input(self, text, iteration):
         """
         This method tries to auto-complete the given text. If there is more than one match,
         the given iteration count decides which one will be returned.
@@ -497,8 +542,9 @@ class TurboLineCmd(cmd.Cmd):
                           The count is usually given to the argument completion method by the TurboLineCmd.
         :return The complete match for the given iteration count (e.g. "foo bartender" for count 0).
         """
-        allowed_arguments.insert(0, '')
-        hit_list = self.__get_possible_hits(argument, allowed_arguments)
+        adjusted_allowed_arguments = list(allowed_arguments)
+        adjusted_allowed_arguments.insert(0, '')
+        hit_list = self.__get_possible_hits(argument, adjusted_allowed_arguments)
         if len(hit_list) == 0:
             return None
         return command + ' ' + hit_list[iteration % len(hit_list)]
