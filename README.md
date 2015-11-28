@@ -50,7 +50,6 @@ class ExampleCommands(TurboLineCmd):
     def __init__(self):
         """
         Initialize the super class (must be done).
-        :return:
         """
         TurboLineCmd.__init__(self)
 
