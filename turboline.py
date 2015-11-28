@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+"""A simple but powerful alternative to the Cmd module for Python programs using Curses."""
+
 import curses
 import curses.textpad
 import re
