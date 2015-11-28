@@ -1,11 +1,11 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 import curses
 import curses.textpad
 import re
 import cmd
 
+__license__ = "LGPL-3.0"
 
 class TurboLineVisibilityInfo:
     """
@@ -224,6 +224,7 @@ class TurboLineValidator:
                     self.completion_iteration += 1
                     self.textbox_target_pad.clear()
                     self.textbox_target_pad.addstr(0, 0, best_match)
+                return ch
         else:
             self.completion_iteration = 0
             self.completion_text = None
@@ -236,6 +237,28 @@ class TurboLineValidator:
         if ch == 360:
             return 5  # CTRL + E
 
+        # PAGE_UP: Jump to first history entry (bash-behavior)
+        if ch == 339:
+            # Nothing to do, we are already there.
+            if self.history_pos == 0:
+                return ch
+            self.__retain_current_input()
+
+            self.history_pos = 0
+            self.textbox_target_pad.addstr(0, 0, self.history[self.history_pos])
+            return ch
+
+        # PAGE_DOWN: Jump to last history entry (bash-behavior)
+        if ch == 338:
+            # Nothing to do, we are already there.
+            if self.history_pos > len(self.history) - 2:
+                return ch
+            self.__retain_current_input()
+
+            self.history_pos = len(self.history) - 1
+            self.textbox_target_pad.addstr(0, 0, self.history[self.history_pos])
+            return ch
+
         # UP: Travel up through the history.
         if ch == 259:
             # Prevent out of bounds access
@@ -245,6 +268,7 @@ class TurboLineValidator:
 
             self.history_pos -= 1
             self.textbox_target_pad.addstr(0, 0, self.history[self.history_pos])
+            return ch
 
         # DOWN: Travel down through the history.
         if ch == 258:
@@ -255,6 +279,7 @@ class TurboLineValidator:
 
             self.history_pos += 1
             self.textbox_target_pad.addstr(0, 0, self.history[self.history_pos])
+            return ch
 
         # DEL: Remove the character under the cursor.
         if ch == 330:

@@ -1,13 +1,14 @@
-__author__ = 'engelfl'
+#!/usr/bin/env python
 
-from turboline import TurboLineCmd, TurboLine
+""" A simple example of how to use TurboLine"""
+
 import curses
 import os
-
+from turboline import TurboLineCmd, TurboLine
 
 class ExampleCommands(TurboLineCmd):
     """
-    This is a simple commands example. It defines three commands and one argument completer.
+    This is a simple commands example. It defines some commands, a help handler and one argument completer.
     """
 
     def __init__(self):
@@ -17,40 +18,19 @@ class ExampleCommands(TurboLineCmd):
         """
         TurboLineCmd.__init__(self)
 
+    # A command with auto completable parameters (see complete_welcome command).
     def do_greet(self, argument):
         """
-        Greets whoever specified. Usage: greet name
+        Greets the user with the given name. Usage: greet name (auto-completable)
         """
-        # We can use self.write to give feedback to the user...
-        self.write("hello " + argument)
+        if argument == 'donnie':
+            self.write("Why are you wearing that stupid man suit?")
+        elif argument == 'frank':
+            self.write("Why are you wearing this stupid bunny suit?")
+        else:
+            self.write("Why aren't you wearing a suit?")
 
-    # The signature must always contain the argument parameter, even if we do not need it.
-    def do_greetfrank(self, argument):
-        """
-        Greets Frank, the man in the stupid bunny suit. Usage: greetfrank
-        """
-
-        self.write("hello frank, why are you wearing this stupid bunny suit?")
-        # frank: why are you wearing that stupid man suit?
-
-    def do_spiderpig(self, argument):
-        # No Python doc, we define a little help method below!
-        self.write("Spiderpig, spiderpig!", curses.color_pair(2))
-
-    def help_spiderpig(self):
-        """
-        If such a help method is defined, 'help command_name' calls this method
-        instead of printing the Python doc.
-        """
-        self.write("Does whatever a spiderpig does!", curses.color_pair(2) | curses.A_BOLD)
-
-    def do_welcome(self, argument):
-        """
-        Welcomes the user with the given name. Usage: welcome name (auto-completable)
-        """
-        self.write("hey " + argument + ", welcome!")
-
-    def complete_welcome(self, argument, iteration):
+    def complete_greet(self, argument, iteration):
         """
         A simple argument completer. Shows how to use the auto match list method.
         The signature must match this one (argument, iteration).
@@ -58,10 +38,28 @@ class ExampleCommands(TurboLineCmd):
         :param iteration: The iteration count (provided by the TurboLineCmd).
         :return: The match for the given iteration or None, if nothing matches.
         """
-
-        # Some common German first names.
-        allowed_arguments = ['florian', 'fabian', 'moritz']
+        allowed_arguments = ['donnie', 'gretchen', 'frank']
         return self._auto_match_list('welcome', argument, allowed_arguments, iteration)
+
+    # The signature must always contain the argument parameter, even if we do not need it.
+    def do_wake(self, argument):
+        """
+        A seriously worded instruction to end sleeping. Usage: wake
+        """
+        self.write("Wake up!")
+
+    # Command using colors
+    def do_doomsday(self, argument):
+        # No Python doc, we define a little help method below!
+        self.write("28 days, 6 hours, 42 minutes, 12 seconds.", curses.color_pair(2))
+
+    # Manually defined help method
+    def help_doomsday(self):
+        """
+        If such a help method is defined, 'help command_name' calls this method
+        instead of printing the Python doc.
+        """
+        self.write("That is when the world will end. Don't ask why.", curses.color_pair(2) | curses.A_BOLD)
 
     def show_error_message(self, text):
         """
