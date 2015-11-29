@@ -16,6 +16,7 @@ From end-user perspective, turboline offers a familiar interface. It resembles t
 Moving the cursor in the command line can simply be done by using the left and right arrow key, the home and the end key. But if you prefer, you can always just use the emacs-style movement commands: 
 
 Keystroke | Action
+--- | ---
 Control-A | Go to left edge of window.
 Control-B | Cursor left.
 Control-D | Delete character under cursor.
