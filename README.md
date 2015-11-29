@@ -39,7 +39,7 @@ The command completion matches every possible command which contains the letters
 
 [![asciicast](https://asciinema.org/a/30841.png)](https://asciinema.org/a/30841)
 
-### Argument-Completion
+#### Argument-Completion
 If there are completable parameters defined for a command, you can complete them in the same way.
 
 [![asciicast](https://asciinema.org/a/30842.png)](https://asciinema.org/a/30842)
