@@ -38,7 +38,7 @@ class ExampleCommands(TurboLineCmd):
         :return: The match for the given iteration or None, if nothing matches.
         """
         allowed_arguments = ['donnie', 'gretchen', 'frank']
-        return self._auto_match_list('welcome', argument, allowed_arguments, iteration)
+        return self._auto_match_list('greet', argument, allowed_arguments, iteration)
 
     # The signature must always contain the argument parameter, even if we do not need it.
     def do_wake(self, argument):
