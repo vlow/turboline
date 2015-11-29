@@ -1,31 +1,63 @@
 # turboline
-Turboline offers a powerful and easy to use command line for Python programs using curses. It is similar to the Python cmd-module in API and handling but offers vim-like auto-completion and screen-wrapping.
+Turboline offers a powerful and easy to use command line for Python 3 programs using curses. It is similar to the Python *cmd* module in API and handling but offers vim-like auto-completion and screen-wrapping. It relies only on core modules and does therefore not create any new dependencies apart from itself. Since it uses the curses module, it is intended for Linux (or Cygwin) use only.
 
 ## TL'DR
-Want a vim-like input line in your Curses program? Take a look at turboline_example.py and get going!
+Want a vim-like input line in your curses program? Take a look at turboline_example.py and get going!
 
 ## Description
-The Python cmd-module is a powerful tool to create a fast way of controlling your program in next to no time. Unfortunately, the cmd-module is not compatible with Curses, because it relies on readline and writes directly to stdout. Since Curses does not easily allow us to use readline for i/o, turboline replaces the readline functionality of cmd to work seamlessly with Curses.
+The Python *cmd* module is a powerful tool to create a fast way of controlling your program in next to no time. Unfortunately, the *cmd* module is not compatible with curses, because it relies on readline and writes directly to stdout. Since curses does not easily allow us to use readline for i/o, turboline replaces the readline functionality of *cmd* to work seamlessly with curses.
 
 Additionally, turboline offers vim-like command and parameter completion/expansion, bash-like history features and screen-wrapping using curses-pads. It also features an adjusted version of the 'help' command, which works with a single line as output.
 
-## Usage
+## Features
 From end-user perspective, turboline offers a familiar interface. It resembles the behavior of well known tools like vim, emacs and bash.
+
+### Movement Commands
+Moving the cursor in the command line can simply be done by using the left and right arrow key, the home and the end key. But if you prefer, you can always just use the emacs-style movement commands: 
+
+Keystroke | Action
+Control-A | Go to left edge of window.
+Control-B | Cursor left.
+Control-D | Delete character under cursor.
+Control-E | Go to end of line.
+Control-F | Cursor right.
+Control-G | Terminate, returning the line contents.
+Control-H | Delete character backward.
+Control-K | Clear to end of line.
+Control-L | Refresh screen.
+
+These controls are inherited from the curses textpad which is used to render the turboline.
 
 ### History
 Use the up and down keys to travel through the command history. Page up takes you to the first history entry, page down to the most recent one (bash-like). If you change a command while traveling through the command history, the command is added as a new entry on that exact history position.
+
+[![asciicast](https://asciinema.org/a/30873.png)](https://asciinema.org/a/30873)
 
 ### Completion
 #### Command-Completion
 The command completion matches every possible command which contains the letters of the given input in that order. So if you have a command named 'foobar', you can complete to it from something like 'f' or 'foo' but also 'bar' or even 'fb' by pressing TAB. If there is more than one match, you can cycle through all matches by repeatedly pressing TAB.
 
+[![asciicast](https://asciinema.org/a/30841.png)](https://asciinema.org/a/30841)
+
+### Argument-Completion
 If there are completable parameters defined for a command, you can complete them in the same way.
+
+[![asciicast](https://asciinema.org/a/30842.png)](https://asciinema.org/a/30842)
 
 #### Command-Expansion
 If the user input can be unambiguously matched to a command, there is no need to press TAB. The input is auto-expanded to the command when pressing enter. If you have a command named 'quit' and it is the only command containing the letter 'q', the sequence 'q -> Enter' executes quit. Note that there is no auto-expansion for parameters.
 
+[![asciicast](https://asciinema.org/a/30842.png)](https://asciinema.org/a/30842)
+
+### Screen Wrapping
+If you're running out of screen, turboline automatically starts to scroll the command line. You can specify the exact size of the turboline and since we never start to wrap lines, your screen layout stays intact no matter what.
+
+[![asciicast](https://asciinema.org/a/30867.png)](https://asciinema.org/a/30867)
+
 ### Help
 The input 'help command\_name' automatically prints the doc string for the command into the command line. It is also possible to define a custom help command for every command.
+
+[![asciicast](https://asciinema.org/a/eq9c650qv0uqw2fcz7odf41c1.png)](https://asciinema.org/a/eq9c650qv0uqw2fcz7odf41c1)
 
 ## Make it your own
 Turboline is very easy to use in your own application. Just import the Python module, define a Command-Class and specify where on the screen you want the turboline to appear. Take a look at the turboline_example.py file for an easy quickstart.
@@ -133,5 +165,7 @@ To use the turboline in your program, initialize it like that:
 
 That takes care of everything. You'll get a turboline with the width of your screen, taking up to 500 characters (softly auto-wrapping when the cursor touches the edge of the screen). Pressing colon will show the turboline with a ":" prompt. You can change the prompt by specifying the "prompt" parameter of the turboline init function.
 
-## Credits and Contribution
-I created this mainly on two weekends, so it is probably not bug free. I welcome pull-requests and reported issues to this repo. If you want to contribute features or bugfixes, please make sure to make your pull-request from a feature-branch.
+## Disclaimer and Contribution
+I am fairly new to Python and I created this mainly on two weekends, so it is probably not bug free. I welcome pull-requests and reported issues to this repo. If you want to contribute features or bugfixes, please make sure to create your pull-request from a feature-branch.
+
+Also, if you are somewhat experienced in Python, I would appreciate if you point out mistakes or bad practices in my code to me.
