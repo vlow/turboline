@@ -48,7 +48,7 @@ If there are completable parameters defined for a command, you can complete them
 #### Command-Expansion
 If the user input can be unambiguously matched to a command, there is no need to press TAB. The input is auto-expanded to the command when pressing enter. If you have a command named 'quit' and it is the only command containing the letter 'q', the sequence 'q -> Enter' executes quit. Note that there is no auto-expansion for parameters.
 
-[![asciicast](https://asciinema.org/a/30842.png)](https://asciinema.org/a/30842)
+[![asciicast](https://asciinema.org/a/30843.png)](https://asciinema.org/a/30843)
 
 ### Screen Wrapping
 If you're running out of screen, turboline automatically starts to scroll the command line. You can specify the exact size of the turboline and since we never start to wrap lines, your screen layout stays intact no matter what.
@@ -58,7 +58,7 @@ If you're running out of screen, turboline automatically starts to scroll the co
 ### Help
 The input 'help command\_name' automatically prints the doc string for the command into the command line. It is also possible to define a custom help command for every command.
 
-[![asciicast](https://asciinema.org/a/eq9c650qv0uqw2fcz7odf41c1.png)](https://asciinema.org/a/eq9c650qv0uqw2fcz7odf41c1)
+[![asciicast](https://asciinema.org/a/30871.png)](https://asciinema.org/a/30871)
 
 ## Make it your own
 Turboline is very easy to use in your own application. Just import the Python module, define a Command-Class and specify where on the screen you want the turboline to appear. Take a look at the turboline_example.py file for an easy quickstart.
