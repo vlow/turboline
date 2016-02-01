@@ -166,6 +166,16 @@ To use the turboline in your program, initialize it like that:
 
 That takes care of everything. You'll get a turboline with the width of your screen, taking up to 500 characters (softly auto-wrapping when the cursor touches the edge of the screen). Pressing colon will show the turboline with a ":" prompt. You can change the prompt by specifying the "prompt" parameter of the turboline init function.
 
+### Handling history
+If you want to persist the command history, you can easily extract in from the turboline and eject it later.
+```python
+   # Extract the history. The result is a plain list of strings.
+   history = turboline.get_history()
+
+   # Inject the history back into the turboline.
+   turboline.set_history(history)
+```
+
 ## Disclaimer and Contribution
 I am fairly new to Python and I created this mainly on two weekends, so it is probably not bug free. I welcome pull-requests and reported issues to this repo. If you want to contribute features or bugfixes, please make sure to create your pull-request from a feature-branch.
 
