@@ -9,6 +9,7 @@ import cmd
 
 __license__ = "LGPL-3.0"
 
+
 class TurboLineVisibilityInfo:
     """
     A small data class, holding the current position information for the TurboLine.
@@ -168,6 +169,20 @@ class TurboLine:
         self.__visibility_info.top_x = 0
         self.__prompt_window.refresh()
         refresh_pad_visibility(self.__text_box_window, self.__visibility_info, True)
+
+    def get_history(self):
+        """
+        Gets the command history from the embedded validator.
+        :return: A list of strings containing the recently entered commands.
+        """
+        return self.validator.history
+
+    def set_history(self, history):
+        """
+        Sets the history available in the command line.
+        :param history: A list of commands which will be available as history.
+        """
+        self.validator.history = history
 
     def clear(self):
         """
