@@ -68,6 +68,10 @@ class TurboLineTextbox(curses.textpad.Textbox):
                 continue
             if not self.do_command(ch):
                 break
+            # if the window is being resized, we cannot refresh
+            # we just return whatever has been entered so far
+            if ch == 410:
+                raise InterruptedError
 
             refresh_pad_visibility(self.win, self.__visibility_info)
 
@@ -136,8 +140,10 @@ class TurboLine:
         old_state = curses.curs_set(1)
 
         # The input ends with a space, we strip that.
-        input_text = self.__text_box.edit(self.validator.validate).rstrip()
-        curses.curs_set(old_state)
+        try:
+            input_text = self.__text_box.edit(self.validator.validate).rstrip()
+        finally:
+            curses.curs_set(old_state)
 
         self.validator.history.append(input_text)
         self.validator.reset()
@@ -184,6 +190,13 @@ class TurboLine:
         """
         self.validator.history = history
 
+    def fetch_current_input(self):
+        """
+        Returns the current (possibly unfinished) input.
+        :return: A string containing whatever the turboline currently shows.
+        """
+        return self.__text_box.gather()
+
     def clear(self):
         """
         Clears the line from all content.
@@ -191,7 +204,6 @@ class TurboLine:
         self.__text_box_window.clear()
         self.__prompt_window.clear()
         self.__prompt_window.refresh()
-        pass
 
 
 class TurboLineValidator:
