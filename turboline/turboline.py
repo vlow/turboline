@@ -61,6 +61,9 @@ class TurboLineTextbox(curses.textpad.Textbox):
                          code of every input and returns it after validation.
         """
         while 1:
+            # We must refresh first, so the cursor is put to the right position for preset text.
+            refresh_pad_visibility(self.win, self.__visibility_info)
+
             ch = self.win.getch()
             if validate:
                 ch = validate(ch)
@@ -69,11 +72,8 @@ class TurboLineTextbox(curses.textpad.Textbox):
             if not self.do_command(ch):
                 break
             # if the window is being resized, we cannot refresh
-            # we just return whatever has been entered so far
             if ch == 410:
                 raise InterruptedError
-
-            refresh_pad_visibility(self.win, self.__visibility_info)
 
         return self.gather()
 
