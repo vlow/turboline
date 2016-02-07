@@ -13,7 +13,7 @@ Additionally, turboline offers vim-like command and parameter completion/expansi
 From end-user perspective, turboline offers a familiar interface. It resembles the behavior of well known tools like vim, emacs and bash.
 
 ### Movement Commands
-Moving the cursor in the command line can simply be done by using the left and right arrow key, the home and the end key. But if you prefer, you can always just use the emacs-style movement commands: 
+Moving the cursor in the command line can simply be done by using the left and right arrow key, the home and the end key. But if you prefer, you can always just use the emacs-style movement commands:
 
 Keystroke | Action
 --- | ---
@@ -167,13 +167,35 @@ To use the turboline in your program, initialize it like that:
 That takes care of everything. You'll get a turboline with the width of your screen, taking up to 500 characters (softly auto-wrapping when the cursor touches the edge of the screen). Pressing colon will show the turboline with a ":" prompt. You can change the prompt by specifying the "prompt" parameter of the turboline init function.
 
 ### Handling history
-If you want to persist the command history, you can easily extract in from the turboline and eject it later.
+If you want to persist the command history, you can easily extract in from the turboline and inject it back later.
 ```python
    # Extract the history. The result is a plain list of strings.
    history = turboline.get_history()
 
    # Inject the history back into the turboline.
    turboline.set_history(history)
+```
+
+### Window resizing
+If the window is resized, you must probably reposition the turboline. The easiest way to do this is to simply create a new turboline and let the garbage collector take care of the rest. In order to keep the history, you can simply extract it from the old turboline and inject into the new turboline as shown above. If the turboline is open while the window is being resized, it will throw an InterruptedError. A simple way to keep whatever the user has entered until he decided to resize the window is to use the fetch_current_input() method as shown in the complete example below.
+
+```python
+   user_input = ''
+   while True:
+       try:
+           turboline.input(user_input)
+           break
+       except InterruptedError:
+           # Fetch the current history and user input...
+           history = turboline.get_history()
+           current_input = turboline.fetch_current_input()
+
+           # Create a new turboline, with respect to the new screen layout.
+           turboline = TurboLine(...)
+           turboline.set_history(history)
+
+           # Don't forget to resize your application.
+           resize_your_application()
 ```
 
 ## Disclaimer and Contribution
